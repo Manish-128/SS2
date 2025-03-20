@@ -1,0 +1,2 @@
+C:/Users/manis/Documents/GitHub/Front_End/shield_sister_2/android/app/.cxx/Debug/323y112n/x86/CMakeFiles/edit_cache.dir
+C:/Users/manis/Documents/GitHub/Front_End/shield_sister_2/android/app/.cxx/Debug/323y112n/x86/CMakeFiles/rebuild_cache.dir
