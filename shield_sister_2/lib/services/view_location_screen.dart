@@ -17,12 +17,8 @@ class _ViewLocationScreenState extends State<ViewLocationScreen> {
   LatLng? currentLocation;
 
   Stream<DocumentSnapshot> getLiveLocationStream() {
-    // return FirebaseFirestore.instance
-    //     .collection('live_locations')
-    //     .doc(widget.trackingId)
-    //     .snapshots();
     return FirebaseFirestore.instance
-        .collection('users')
+        .collection('live_locations')
         .doc(widget.trackingId)
         .snapshots();
   }
@@ -108,10 +104,8 @@ class _ViewLocationScreenState extends State<ViewLocationScreen> {
                   }
 
                   var data = snapshot.data!.data() as Map<String, dynamic>;
-                  // double latitude = data['latitude'];
-                  // double longitude = data['longitude'];
-                  double latitude = data['location_lat'];
-                  double longitude = data['location_long'];
+                  double latitude = data['latitude'];
+                  double longitude = data['longitude'];
                   currentLocation = LatLng(latitude, longitude);
 
                   if (_mapController != null) {

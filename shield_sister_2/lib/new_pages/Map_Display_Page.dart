@@ -1,6 +1,5 @@
-
-
-
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
@@ -24,13 +23,20 @@ class Landmark {
 }
 
 Future<List<Landmark>> fetchLandmarks(LatLng location, String type) async {
-  const apiKey = "AIzaSyAnqy5abBsQQIXXzhj8VwiW5zXM3if2zaY"; // Replace with your actual Google Places API key
+  const apiKey =
+      "AIzaSyAnqy5abBsQQIXXzhj8VwiW5zXM3if2zaY"; // Replace with your actual Google Places API key
   final url = Uri.parse("https://places.googleapis.com/v1/places:searchNearby");
 
   final body = jsonEncode({
     "includedTypes": [type],
     "locationRestriction": {
-      "circle": {"center": {"latitude": location.latitude, "longitude": location.longitude}, "radius": 1000}
+      "circle": {
+        "center": {
+          "latitude": location.latitude,
+          "longitude": location.longitude
+        },
+        "radius": 1000
+      }
     }
   });
 
@@ -40,7 +46,8 @@ Future<List<Landmark>> fetchLandmarks(LatLng location, String type) async {
       headers: {
         "Content-Type": "application/json",
         "X-Goog-Api-Key": apiKey,
-        "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.location"
+        "X-Goog-FieldMask":
+            "places.displayName,places.formattedAddress,places.location"
       },
       body: body,
     );
@@ -50,7 +57,8 @@ Future<List<Landmark>> fetchLandmarks(LatLng location, String type) async {
       return (data['places'] as List<dynamic>? ?? []).map<Landmark>((result) {
         return Landmark(
           name: result['displayName']['text'] as String? ?? 'Unknown',
-          description: result['formattedAddress'] as String? ?? 'No description available',
+          description: result['formattedAddress'] as String? ??
+              'No description available',
           location: LatLng(
             result['location']['latitude'] as double? ?? 0.0,
             result['location']['longitude'] as double? ?? 0.0,
@@ -63,6 +71,36 @@ Future<List<Landmark>> fetchLandmarks(LatLng location, String type) async {
     debugPrint('Error fetching landmarks: $error');
     return const [];
   }
+}
+
+class Report {
+  final String description;
+  final LatLng location;
+  final DateTime timestamp;
+
+  Report({
+    required this.description,
+    required this.location,
+    required this.timestamp,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'description': description,
+        'location': {
+          'latitude': location.latitude,
+          'longitude': location.longitude
+        },
+        'timestamp': timestamp.toIso8601String(),
+      };
+
+  factory Report.fromJson(Map<String, dynamic> json) => Report(
+        description: json['description'] as String,
+        location: LatLng(
+          json['location']['latitude'] as double,
+          json['location']['longitude'] as double,
+        ),
+        timestamp: DateTime.parse(json['timestamp'] as String),
+      );
 }
 
 class MapDisplayPage extends StatefulWidget {
@@ -82,15 +120,21 @@ class _MapDisplayPageState extends State<MapDisplayPage> {
   String _zoneStatus = 'Neutral Zone';
   Color _zoneColor = Colors.grey;
   Set<Polyline> _polylines = {};
+  Set<Marker> _markers = {};
   Landmark? _selectedSafeZone;
   bool _isLoading = false;
   bool _showZoneStatus = false;
   Timer? _statusTimer;
+  Report? _nearbyReport;
+  LatLng? _selectedReportLocation;
+
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   void initState() {
     super.initState();
     _initializeMap();
+    _loadReports(); // Load existing reports on startup
   }
 
   @override
@@ -108,13 +152,17 @@ class _MapDisplayPageState extends State<MapDisplayPage> {
     if (await Permission.location.request().isGranted) {
       setState(() => _isLoading = true);
       try {
-        final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+        final position = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high);
         final newPosition = LatLng(position.latitude, position.longitude);
-        if (_calculateDistance(_lastCheckedPosition, newPosition) > 500 || _circles.isEmpty) {
+        if (_calculateDistance(_lastCheckedPosition, newPosition) > 500 ||
+            _circles.isEmpty) {
           _lastCheckedPosition = _currentPosition;
           _currentPosition = newPosition;
           await _updateZones(position);
-          _mapController.animateCamera(CameraUpdate.newLatLng(_currentPosition));
+          await _checkForNearbyReports(newPosition);
+          _mapController
+              .animateCamera(CameraUpdate.newLatLng(_currentPosition));
         }
       } catch (e) {
         _showError('Failed to get location: $e');
@@ -124,6 +172,155 @@ class _MapDisplayPageState extends State<MapDisplayPage> {
     } else {
       _showError('Location permission denied');
     }
+  }
+
+  Future<void> _loadReports() async {
+    try {
+      final snapshot = await _firestore.collection('reports').get();
+      final reports =
+          snapshot.docs.map((doc) => Report.fromJson(doc.data())).toList();
+      setState(() {
+        _markers = reports.map((report) {
+          return Marker(
+            markerId: MarkerId(report.location.toString()),
+            position: report.location,
+            infoWindow: InfoWindow(title: 'Reported: ${report.description}'),
+            icon: BitmapDescriptor.defaultMarkerWithHue(
+                BitmapDescriptor.hueOrange),
+          );
+        }).toSet();
+      });
+    } catch (e) {
+      _showError('Error loading reports: $e');
+    }
+  }
+
+  Future<void> _checkForNearbyReports(LatLng userLocation) async {
+    try {
+      final snapshot = await _firestore.collection('reports').get();
+      final reports =
+          snapshot.docs.map((doc) => Report.fromJson(doc.data())).toList();
+
+      setState(() {
+        _nearbyReport = reports.firstWhereOrNull(
+          (report) => _calculateDistance(userLocation, report.location) <= 100,
+        );
+        if (_nearbyReport != null) {
+          _showReportNotification(_nearbyReport!.description);
+          _markers = _markers.map((marker) {
+            if (marker.position == _nearbyReport!.location) {
+              return marker.copyWith(
+                iconParam: BitmapDescriptor.defaultMarkerWithHue(
+                    BitmapDescriptor.hueRed),
+              );
+            }
+            return marker;
+          }).toSet();
+        } else {
+          _markers = _markers.map((marker) {
+            return marker.copyWith(
+              iconParam: BitmapDescriptor.defaultMarkerWithHue(
+                  BitmapDescriptor.hueOrange),
+            );
+          }).toSet();
+        }
+      });
+    } catch (e) {
+      _showError('Error fetching reports: $e');
+    }
+  }
+
+  void _showReportNotification(String description) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'User Report: $description',
+          style: GoogleFonts.poppins(color: Colors.white),
+        ),
+        backgroundColor: Colors.orange,
+        duration: const Duration(seconds: 5),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _submitReport(String description, LatLng location) async {
+    try {
+      setState(() => _isLoading = true);
+      final report = Report(
+        description: description,
+        location: location,
+        timestamp: DateTime.now(),
+      );
+      await _firestore.collection('reports').add(report.toJson());
+      setState(() {
+        _markers.add(
+          Marker(
+            markerId: MarkerId(location.toString()),
+            position: location,
+            infoWindow: InfoWindow(title: 'Reported: $description'),
+            icon: BitmapDescriptor.defaultMarkerWithHue(
+                BitmapDescriptor.hueOrange),
+          ),
+        );
+      });
+      _showError('Report submitted successfully!');
+    } catch (e) {
+      _showError('Error submitting report: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _showReportDialog() {
+    String reportText = '';
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Report an Issue',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _selectedReportLocation != null
+                  ? 'Location: ${_selectedReportLocation!.latitude.toStringAsFixed(6)}, ${_selectedReportLocation!.longitude.toStringAsFixed(6)}'
+                  : 'Tap the map to select a location',
+              style: GoogleFonts.poppins(),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              onChanged: (value) => reportText = value,
+              decoration: InputDecoration(
+                hintText: 'Enter your report',
+                hintStyle: GoogleFonts.poppins(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              setState(() => _selectedReportLocation = null);
+              Navigator.pop(context);
+            },
+            child: Text('Cancel', style: GoogleFonts.poppins()),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (reportText.isNotEmpty && _selectedReportLocation != null) {
+                await _submitReport(reportText, _selectedReportLocation!);
+                setState(() => _selectedReportLocation = null);
+                Navigator.pop(context);
+              } else {
+                _showError('Please select a location and enter a report');
+              }
+            },
+            child: Text('Submit', style: GoogleFonts.poppins()),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _updateZones(Position position) async {
@@ -159,7 +356,8 @@ class _MapDisplayPageState extends State<MapDisplayPage> {
     }
   }
 
-  void _addCircles(List<Landmark> landmarks, Color color, List<Landmark>? zones, [List<LatLng>? centers]) {
+  void _addCircles(List<Landmark> landmarks, Color color, List<Landmark>? zones,
+      [List<LatLng>? centers]) {
     for (var landmark in landmarks) {
       _circles.add(Circle(
         circleId: CircleId(landmark.name),
@@ -175,8 +373,10 @@ class _MapDisplayPageState extends State<MapDisplayPage> {
   }
 
   void _checkUserZone(LatLng userLocation) {
-    final inSafeZone = _safeZones.any((zone) => _calculateDistance(userLocation, zone.location) <= 50);
-    final inUnsafeZone = _unsafeZoneCenters.any((center) => _calculateDistance(userLocation, center) <= 50);
+    final inSafeZone = _safeZones
+        .any((zone) => _calculateDistance(userLocation, zone.location) <= 50);
+    final inUnsafeZone = _unsafeZoneCenters
+        .any((center) => _calculateDistance(userLocation, center) <= 50);
 
     setState(() {
       if (inSafeZone && inUnsafeZone) {
@@ -200,19 +400,35 @@ class _MapDisplayPageState extends State<MapDisplayPage> {
     final dLat = _degreesToRadians(loc2.latitude - loc1.latitude);
     final dLon = _degreesToRadians(loc2.longitude - loc1.longitude);
     final a = sin(dLat / 2) * sin(dLat / 2) +
-        cos(_degreesToRadians(loc1.latitude)) * cos(_degreesToRadians(loc2.latitude)) * sin(dLon / 2) * sin(dLon / 2);
+        cos(_degreesToRadians(loc1.latitude)) *
+            cos(_degreesToRadians(loc2.latitude)) *
+            sin(dLon / 2) *
+            sin(dLon / 2);
     return earthRadius * 2 * atan2(sqrt(a), sqrt(1 - a));
   }
 
   double _degreesToRadians(double degrees) => degrees * (pi / 180);
 
   Future<List<LatLng>> _getDirections(LatLng origin, LatLng destination) async {
-    const apiKey = "AIzaSyAnqy5abBsQQIXXzhj8VwiW5zXM3if2zaY"; // Replace with your actual Google Routes API key
-    final url = Uri.parse("https://routes.googleapis.com/directions/v2:computeRoutes");
+    const apiKey =
+        "AIzaSyAnqy5abBsQQIXXzhj8VwiW5zXM3if2zaY"; // Replace with your actual Google Routes API key
+    final url =
+        Uri.parse("https://routes.googleapis.com/directions/v2:computeRoutes");
 
     final body = jsonEncode({
-      "origin": {"location": {"latLng": {"latitude": origin.latitude, "longitude": origin.longitude}}},
-      "destination": {"location": {"latLng": {"latitude": destination.latitude, "longitude": destination.longitude}}},
+      "origin": {
+        "location": {
+          "latLng": {"latitude": origin.latitude, "longitude": origin.longitude}
+        }
+      },
+      "destination": {
+        "location": {
+          "latLng": {
+            "latitude": destination.latitude,
+            "longitude": destination.longitude
+          }
+        }
+      },
       "travelMode": "DRIVE",
       "routingPreference": "TRAFFIC_AWARE"
     });
@@ -253,7 +469,6 @@ class _MapDisplayPageState extends State<MapDisplayPage> {
     while (index < polyline.length) {
       int byte, shift = 0, result = 0;
 
-      // Decode latitude
       do {
         byte = polyline.codeUnitAt(index++) - 63;
         result |= (byte & 0x1F) << shift;
@@ -264,7 +479,6 @@ class _MapDisplayPageState extends State<MapDisplayPage> {
       shift = 0;
       result = 0;
 
-      // Decode longitude
       do {
         byte = polyline.codeUnitAt(index++) - 63;
         result |= (byte & 0x1F) << shift;
@@ -304,13 +518,21 @@ class _MapDisplayPageState extends State<MapDisplayPage> {
               Positioned.fill(
                 child: GoogleMap(
                   onMapCreated: (controller) => _mapController = controller,
-                  initialCameraPosition: CameraPosition(target: _currentPosition, zoom: 14.0),
+                  initialCameraPosition:
+                      CameraPosition(target: _currentPosition, zoom: 14.0),
                   circles: _circles,
                   polylines: _polylines,
+                  markers: _markers,
                   myLocationEnabled: true,
-                  myLocationButtonEnabled: true,
+                  myLocationButtonEnabled: false,
                   onCameraIdle: _updateUserLocation,
-                  padding: const EdgeInsets.only(bottom: 200),
+                  padding: const EdgeInsets.only(top: 100),
+                  onTap: (LatLng position) {
+                    setState(() {
+                      _selectedReportLocation = position;
+                      _showReportDialog();
+                    });
+                  },
                 ),
               ),
               Positioned(
@@ -323,24 +545,41 @@ class _MapDisplayPageState extends State<MapDisplayPage> {
                     color: Colors.white.withOpacity(0.95),
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
-                      BoxShadow(color: Colors.grey.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4)),
+                      BoxShadow(
+                          color: Colors.grey.withOpacity(0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4)),
                     ],
                   ),
                   child: Row(
                     children: [
-                      // IconButton(
-                      //   icon: const Icon(Icons.arrow_back, color: Colors.black),
-                      //   onPressed: () => Navigator.pop(context),
-                      // ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           "Safety Map",
-                          style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black),
+                          style: GoogleFonts.poppins(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black),
                         ),
                       ),
                     ],
                   ),
+                ),
+              ),
+              Positioned(
+                bottom: 200,
+                right: 16,
+                child: FloatingActionButton(
+                  onPressed: _isLoading
+                      ? null
+                      : () async {
+                          await _updateUserLocation();
+                          _mapController.animateCamera(
+                              CameraUpdate.newLatLng(_currentPosition));
+                        },
+                  backgroundColor: Colors.black,
+                  child: const Icon(Icons.my_location, color: Colors.white),
                 ),
               ),
               Positioned(
@@ -353,7 +592,10 @@ class _MapDisplayPageState extends State<MapDisplayPage> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
-                      BoxShadow(color: Colors.grey.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4)),
+                      BoxShadow(
+                          color: Colors.grey.withOpacity(0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4)),
                     ],
                   ),
                   child: Column(
@@ -364,64 +606,95 @@ class _MapDisplayPageState extends State<MapDisplayPage> {
                         children: [
                           _buildButton(
                             icon: Icons.security,
-                            text: "Check Zone",
+                            text: "Zone",
                             onPressed: () {
                               _showZoneStatus = true;
                               _checkUserZone(_currentPosition);
                               _statusTimer?.cancel();
-                              _statusTimer = Timer(const Duration(seconds: 3), () => setState(() => _showZoneStatus = false));
+                              _statusTimer = Timer(
+                                  const Duration(seconds: 3),
+                                  () =>
+                                      setState(() => _showZoneStatus = false));
+                            },
+                          ),
+                          _buildButton(
+                            icon: Icons.report,
+                            text: "Report",
+                            onPressed: () {
+                              _showError(
+                                  'Tap the map to select a location for reporting');
                             },
                           ),
                           _buildButton(
                             icon: Icons.directions,
-                            text: "Get Directions",
+                            text: "Directions",
                             onPressed: _selectedSafeZone == null
                                 ? null
                                 : () async {
-                              final route = await _getDirections(_currentPosition, _selectedSafeZone!.location);
-                              setState(() {
-                                _polylines = {
-                                  Polyline(polylineId: const PolylineId('route'), points: route, color: Colors.black, width: 5)
-                                };
-                              });
-                            },
+                                    final route = await _getDirections(
+                                        _currentPosition,
+                                        _selectedSafeZone!.location);
+                                    setState(() {
+                                      _polylines = {
+                                        Polyline(
+                                            polylineId:
+                                                const PolylineId('route'),
+                                            points: route,
+                                            color: Colors.black,
+                                            width: 5)
+                                      };
+                                    });
+                                  },
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
                       DropdownButton<Landmark>(
                         isExpanded: true,
-                        hint: Text("Select Safe Zone", style: GoogleFonts.poppins(color: Colors.grey.shade700)),
+                        hint: Text("Select Safe Zone",
+                            style: GoogleFonts.poppins(
+                                color: Colors.grey.shade700)),
                         value: _selectedSafeZone,
-                        onChanged: _isLoading ? null : (value) => setState(() => _selectedSafeZone = value),
+                        onChanged: _isLoading
+                            ? null
+                            : (value) =>
+                                setState(() => _selectedSafeZone = value),
                         items: _safeZones.isEmpty
                             ? [
-                          DropdownMenuItem<Landmark>(
-                            enabled: false,
-                            child: Text("No Safe Zones", style: GoogleFonts.poppins(color: Colors.grey)),
-                          )
-                        ]
+                                DropdownMenuItem<Landmark>(
+                                  enabled: false,
+                                  child: Text("No Safe Zones",
+                                      style: GoogleFonts.poppins(
+                                          color: Colors.grey)),
+                                )
+                              ]
                             : _safeZones.map((zone) {
-                          return DropdownMenuItem<Landmark>(
-                            value: zone,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    zone.name,
-                                    style: GoogleFonts.poppins(fontSize: 16, color: Colors.black),
-                                    overflow: TextOverflow.ellipsis,
+                                return DropdownMenuItem<Landmark>(
+                                  value: zone,
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          zone.name,
+                                          style: GoogleFonts.poppins(
+                                              fontSize: 16,
+                                              color: Colors.black),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${(_calculateDistance(zone.location, _currentPosition) / 1000).toStringAsFixed(2)} km',
+                                        style: GoogleFonts.poppins(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                                Text(
-                                  '${(_calculateDistance(zone.location, _currentPosition) / 1000).toStringAsFixed(2)} km',
-                                  style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
-                                ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
+                                );
+                              }).toList(),
                       ),
                       if (_showZoneStatus)
                         Padding(
@@ -432,12 +705,16 @@ class _MapDisplayPageState extends State<MapDisplayPage> {
                               Container(
                                 width: 20,
                                 height: 20,
-                                decoration: BoxDecoration(color: _zoneColor, shape: BoxShape.circle),
+                                decoration: BoxDecoration(
+                                    color: _zoneColor, shape: BoxShape.circle),
                               ),
                               const SizedBox(width: 8),
                               Text(
                                 _zoneStatus,
-                                style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
+                                style: GoogleFonts.poppins(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black),
                               ),
                             ],
                           ),
@@ -454,7 +731,8 @@ class _MapDisplayPageState extends State<MapDisplayPage> {
                       color: Colors.black.withOpacity(0.7),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(Colors.white)),
+                    child: const CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation(Colors.white)),
                   ),
                 ),
             ],
@@ -464,13 +742,16 @@ class _MapDisplayPageState extends State<MapDisplayPage> {
     );
   }
 
-  Widget _buildButton({required IconData icon, required String text, required VoidCallback? onPressed}) {
+  Widget _buildButton(
+      {required IconData icon,
+      required String text,
+      required VoidCallback? onPressed}) {
     return ElevatedButton(
       onPressed: _isLoading ? null : onPressed,
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.black,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         elevation: 8,
       ),
       child: Row(
@@ -478,13 +759,26 @@ class _MapDisplayPageState extends State<MapDisplayPage> {
         children: [
           Icon(icon, color: Colors.white),
           const SizedBox(width: 8),
-          Text(text, style: GoogleFonts.poppins(color: Colors.white, fontSize: 14)),
+          Text(text,
+              style: GoogleFonts.poppins(color: Colors.white, fontSize: 14)),
         ],
       ),
     );
   }
 }
 
+extension IterableExtension<T> on Iterable<T> {
+  T? firstWhereOrNull(bool Function(T) test) {
+    try {
+      return firstWhere(test);
+    } catch (e) {
+      return null;
+    }
+  }
+}
+
 void main() {
   runApp(const MaterialApp(home: MapDisplayPage()));
 }
+
+

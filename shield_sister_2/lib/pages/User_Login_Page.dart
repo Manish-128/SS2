@@ -36,13 +36,11 @@ class _UserLoginPageState extends State<UserLoginPage> {
     });
 
     try {
-
       final result = await authService.login(email, password);
 
       if (result.containsKey('message') && result['message'] == 'Login successful') {
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setString('userId', result['user']['_id']);
-        await prefs.setString('username', result['user']['email']);
         await prefs.setString('jwtToken', result['token']);
         await prefs.setString('username', result['user']['fullname']);
         await prefs.setString('email', result['user']['email']);
@@ -157,6 +155,18 @@ class _UserLoginPageState extends State<UserLoginPage> {
                       onPressed: () => Navigator.pushReplacementNamed(context, '/reg'),
                       child: Text(
                         'Sign Up',
+                        style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.black),
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pushNamed(context, '/forget'),
+                      child: Text(
+                        'Forgot Password?',
                         style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.black),
                       ),
                     ),

@@ -1,8 +1,7 @@
 
 import 'package:flutter/material.dart';
 import '../services/share_location_screen.dart'; // Adjust path as needed
-import '../services/view_location_screen.dart';
-import 'ViewTrack2.dart';   // Adjust path as needed
+import '../services/view_location_screen.dart';   // Adjust path as needed
 
 class LocationChoiceScreen extends StatefulWidget {
   @override
@@ -178,41 +177,37 @@ class _LocationChoiceScreenState extends State<LocationChoiceScreen> {
                               SizedBox(height: 24),
 
                               // Tracking ID Input
-                              // TextField(
-                              //   controller: _trackingIdController,
-                              //   decoration: InputDecoration(
-                              //     labelText: 'Enter Tracking ID',
-                              //     labelStyle: TextStyle(color: Colors.grey.shade600),
-                              //     filled: true,
-                              //     fillColor: Colors.grey.shade100,
-                              //     border: OutlineInputBorder(
-                              //       borderRadius: BorderRadius.circular(12),
-                              //       borderSide: BorderSide.none,
-                              //     ),
-                              //     prefixIcon: Icon(
-                              //       Icons.vpn_key,
-                              //       color: Colors.black,
-                              //     ),
-                              //     focusedBorder: OutlineInputBorder(
-                              //       borderRadius: BorderRadius.circular(12),
-                              //       borderSide: BorderSide(
-                              //         color: Colors.black,
-                              //         width: 2,
-                              //       ),
-                              //     ),
-                              //   ),
-                              //   style: TextStyle(color: Colors.black),
-                              //   cursorColor: Colors.black,
-                              // ),
-                              // SizedBox(height: 24),
+                              TextField(
+                                controller: _trackingIdController,
+                                decoration: InputDecoration(
+                                  labelText: 'Enter Tracking ID',
+                                  labelStyle: TextStyle(color: Colors.grey.shade600),
+                                  filled: true,
+                                  fillColor: Colors.grey.shade100,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  prefixIcon: Icon(
+                                    Icons.vpn_key,
+                                    color: Colors.black,
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(
+                                      color: Colors.black,
+                                      width: 2,
+                                    ),
+                                  ),
+                                ),
+                                style: TextStyle(color: Colors.black),
+                                cursorColor: Colors.black,
+                              ),
+                              SizedBox(height: 24),
 
                               // Track Location Button
                               ElevatedButton(
-                                onPressed: (){
-                                  Navigator.push(
-                                      context,  //TODO: Change this later
-                                      MaterialPageRoute(builder: (context) =>  ViewTrack2()),);
-                                },
+                                onPressed: _isButtonEnabled ? openViewScreen : null,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.black,
                                   padding: EdgeInsets.symmetric(

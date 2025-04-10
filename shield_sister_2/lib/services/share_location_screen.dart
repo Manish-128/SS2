@@ -1,8 +1,8 @@
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../services/location_service.dart';
+import 'package:share_plus/share_plus.dart';
+
 
 class ShareLocationScreen extends StatefulWidget {
   @override
@@ -14,10 +14,8 @@ class _ShareLocationScreenState extends State<ShareLocationScreen> {
   String? trackingId;
   bool _isLoading = false;
 
-
   void startSharing() async {
     setState(() => _isLoading = true);
-
     try {
       String id = await _locationService.startSharing();
       setState(() {
@@ -187,6 +185,7 @@ class _ShareLocationScreenState extends State<ShareLocationScreen> {
                                   onPressed: () {
                                     // Implement sharing functionality here
                                     // For example: Share.share('Track my location with ID: $trackingId');
+                                    Share.share('Check this out: $trackingId');
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.black,
