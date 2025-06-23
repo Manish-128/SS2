@@ -1,18 +1,28 @@
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class newHelplinePage extends StatelessWidget {
-  const newHelplinePage({super.key});
+  newHelplinePage({super.key});
 
   Future<void> _callhelp(String number) async {
-    Uri dialerUri = Uri(scheme: 'tel', path: number); // Blank tel: URI
+    Uri dialerUri = Uri(scheme: 'tel', path: number);
     try {
       await launchUrl(dialerUri);
     } catch (e) {
       debugPrint('Error opening the dialer: $e');
     }
   }
+
+  // List of warm colors
+  final List<Color> warmColors = [
+    const Color(0xFFFF4D6D), // Strong pink/red
+    const Color(0xFFFF6F61), // Coral
+    const Color(0xFFFF8C42), // Orange
+    const Color(0xFFFFA726), // Deep orange
+    const Color(0xFFFFAB91), // Light salmon
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -31,55 +41,78 @@ class newHelplinePage extends StatelessWidget {
       ["Legal Aid for Women (Free Legal Assistance)", "15100"],
     ];
 
+    // Shuffle warm colors randomly
+    warmColors.shuffle();
+
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text("Helpline Numbers"),
+        title: const Text(
+          'Helpline Numbers',
+          style: TextStyle(color: Color(0xFF009688)),
+        ),
+        backgroundColor: const Color(0xFFE0F2F1), // Soft pink from theme
+        elevation: 0,
       ),
       body: SafeArea(
-          child: ListView.builder(
-              itemCount: helplines.length,
-              itemBuilder: (context, index) {
-                return Card(
-                  margin:
-                      const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: Colors.blueAccent,
-                      child: Text(
-                        helplines[index][0]
-                            .substring(0, 1), // First digit of the number
-                        style: GoogleFonts.workSans(
-                          textStyle: const TextStyle(
-                              color: Colors.white, fontWeight: FontWeight.bold),
-                        ),
+        child: ListView.builder(
+          itemCount: helplines.length,
+          itemBuilder: (context, index) {
+            // Use shuffled warm colors with a cycle (repeat if needed)
+            Color avatarColor = warmColors[index % warmColors.length];
+
+            return Card(
+              margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              color: Colors.white,
+              child: ListTile(
+                contentPadding: const EdgeInsets.all(16.0),
+                leading: CircleAvatar(
+                  backgroundColor: avatarColor,
+                  child: Text(
+                    helplines[index][0].substring(0, 1),
+                    style: GoogleFonts.workSans(
+                      textStyle: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
                       ),
-                    ),
-                    title: Text(
-                      helplines[index][0],
-                      style: GoogleFonts.workSans(
-                        textStyle: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                    subtitle: Text(
-                      "Helpline: ${helplines[index][1]}",
-                      style: GoogleFonts.workSans(
-                        textStyle:
-                            const TextStyle(fontSize: 14, color: Colors.grey),
-                      ),
-                    ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.call, color: Colors.green),
-                      onPressed: () {
-                        _callhelp(helplines[index][1]);
-                      },
                     ),
                   ),
-                );
-              })),
+                ),
+                title: Text(
+                  helplines[index][0],
+                  style: GoogleFonts.workSans(
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                subtitle: Text(
+                  "Helpline: ${helplines[index][1]}",
+                  style: GoogleFonts.workSans(
+                    textStyle: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ),
+                trailing: IconButton(
+                  icon: const Icon(Icons.call, color: Color(0xFF009688)),
+                  onPressed: () {
+                    _callhelp(helplines[index][1]);
+                  },
+                ),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }

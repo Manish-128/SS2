@@ -34,7 +34,7 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
-
+    namespace 'com.shield_sister.shield_sister_2'
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.

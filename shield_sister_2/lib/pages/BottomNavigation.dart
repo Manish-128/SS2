@@ -1,11 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import "package:flutter/material.dart";
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shield_sister_2/new_pages/Contact_Management_Page.dart';
 import 'package:shield_sister_2/new_pages/Main_Manual_Page.dart';
 import 'package:shield_sister_2/new_pages/Map_Display_Page.dart';
 import 'package:shield_sister_2/pages/SOS_Homescreen.dart';
 import 'package:shield_sister_2/pages/Main_Setting_Page.dart';
-
 
 class BottomNavigationPage extends StatefulWidget {
   const BottomNavigationPage({super.key});
@@ -19,7 +19,9 @@ class BottomNavigationPageState extends State<BottomNavigationPage> {
   final PageController pageController = PageController();
 
   void animateToPage(int page) {
-       pageController.jumpToPage(page);
+    if(mounted){
+      pageController.jumpToPage(page);
+    }
   }
 
 
@@ -38,10 +40,10 @@ class BottomNavigationPageState extends State<BottomNavigationPage> {
         physics: const NeverScrollableScrollPhysics(),
         children: [
           const SOSHomescreen(), // Home page (index 0)
-          MainManualPage(), // Search page (index 1)
+          const MainManualPage(), // Search page (index 1)
           const MapDisplayPage(), // Category page (index 2)
-          ContactManagementPage(), // Contact page (index 3)
-          MainSettingPage()
+          const ContactManagementPage(), // Contact page (index 3)
+          const MainSettingPage()
         ],
       ),
       bottomNavigationBar: bottomNav(),
@@ -73,57 +75,67 @@ class BottomNavigationPageState extends State<BottomNavigationPage> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     BottomNavBTN(
-                      onPressed: (val) {
+                      onPressed: (val) async{
                         animateToPage(val);
+                        await Future.delayed(Duration(milliseconds: 10));
                         setState(() {
                           _currentIndex = val;
                         });
                       },
-                      icon: Icons.home,
+                      imagePath: 'assets/icons/home1.png',
+                      name: "Home",
                       currentIndex: _currentIndex,
                       index: 0,
                     ),
                     BottomNavBTN(
-                      onPressed: (val) {
+                      onPressed: (val) async{
                         animateToPage(val);
+                        await Future.delayed(Duration(milliseconds: 10));
                         setState(() {
                           _currentIndex = val;
                         });
                       },
-                      icon: CupertinoIcons.book,
+                      imagePath: 'assets/icons/manual1.png',
+                      name: "Manual",
                       currentIndex: _currentIndex,
                       index: 1,
                     ),
                     BottomNavBTN(
-                      onPressed: (val) {
+                      onPressed: (val) async{
                         animateToPage(val);
+                        await Future.delayed(Duration(milliseconds: 10));
                         setState(() {
                           _currentIndex = val;
                         });
                       },
-                      icon: Icons.map,
+                      imagePath: 'assets/icons/maps1.png',
+                      name: "Map",
                       currentIndex: _currentIndex,
                       index: 2,
                     ),
                     BottomNavBTN(
-                      onPressed: (val) {
+                      onPressed: (val) async{
                         animateToPage(val);
+                        await Future.delayed(Duration(milliseconds: 10));
                         setState(() {
                           _currentIndex = val;
                         });
                       },
-                      icon: Icons.contact_page_outlined,
+                      imagePath: 'assets/icons/contacts1.png',
+                      name: "Contacts",
                       currentIndex: _currentIndex,
                       index: 3,
                     ),
                     BottomNavBTN(
-                      onPressed: (val) {
+                      onPressed: (val) async{
                         animateToPage(val);
+                        await Future.delayed(Duration(milliseconds: 10));
                         setState(() {
                           _currentIndex = val;
                         });
                       },
-                      icon: Icons.account_circle_outlined,
+                      imagePath: 'assets/icons/profile1.png',
+                      name: "Profile",
                       currentIndex: _currentIndex,
                       index: 4,
                     ),
@@ -180,49 +192,60 @@ class MyCustomClipper extends CustomClipper<Path> {
 
 class BottomNavBTN extends StatelessWidget {
   final Function(int) onPressed;
-  final IconData icon;
+  final String imagePath;
   final int index;
   final int currentIndex;
+  final String name;
 
   const BottomNavBTN({
     super.key,
-    required this.icon,
+    required this.imagePath,
     required this.onPressed,
     required this.index,
     required this.currentIndex,
+    required this.name,
   });
 
   @override
   Widget build(BuildContext context) {
     AppSizes().init(context);
     return InkWell(
-      onTap: () {
-        onPressed(index);
-      },
-      child: Center(
-        child: Container(
-          alignment: Alignment.center,
-          height: AppSizes.blockSizeHorizontal * 13,
-          width: AppSizes.blockSizeHorizontal * 18,
-          decoration: const BoxDecoration(
-            color: Colors.transparent,
-          ),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              // Icon with different opacity based on whether it is the current index
-              AnimatedOpacity(
-                opacity: (currentIndex == index) ? 1 : 0.2, // Adjust opacity based on current index
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeIn,
-                child: Icon(
-                  icon,
-                  color: (currentIndex == index) ? Colors.white : const Color(0xFFDFF3EA), // Change color based on current index
-                  size: AppSizes.blockSizeHorizontal * 8, // Adjust size
-                ),
+      onTap: () => onPressed(index),
+      child: Container(
+        // Use a fixed height suitable for bottom nav (56dp is standard)
+        height: 56, // Adjusted to standard bottom nav height
+        width: AppSizes.blockSizeHorizontal * 15, // ~15% of screen width
+        decoration: const BoxDecoration(
+          color: Colors.black,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedOpacity(
+              opacity: currentIndex == index ? 1 : 0.65,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeIn,
+              child: Column(
+                mainAxisSize: MainAxisSize.min, // Minimize vertical space
+                children: [
+                  Image.asset(
+                    color: Colors.white,
+                    imagePath,
+                    width: 24,  // Reduced from 32 to fit better
+                    height: 24,
+                  ),
+                  const SizedBox(height: 4), // Small gap between image and text
+                  Text(
+                    name,
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 12, // Smaller font to fit
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -242,26 +265,5 @@ class AppSizes {
     screenHeight = _mediaQueryData.size.height;
     blockSizeHorizontal = screenWidth / 100;
     blockSizeVertical = screenHeight / 100;
-  }
-}
-
-class SampleWidget extends StatelessWidget {
-  const SampleWidget({
-    Key? key,
-    required this.label,
-    required this.color,
-  }) : super(key: key);
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: color,
-      ),
-    );
   }
 }

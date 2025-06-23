@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ffi';
 import 'package:http/http.dart' as http;
 import 'package:shield_sister_2/new_pages/Contact_Management_Page.dart';
 import 'package:battery_plus/battery_plus.dart';
@@ -8,6 +9,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
 import 'package:intl/intl.dart';
 import 'dart:math';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   // final String _baseUrl = "http://10.0.2.2:5000/api/sos/savecontacts";
@@ -21,12 +23,68 @@ class AuthService {
   final String link = "https://shield-sisters-dep-d4z8.vercel.app/api";
   final String _baseUrl2 = "https://shield-sisters-dep-d4z8.vercel.app/api/sos/sendsos";
   final String _contactUrl = "https://shield-sisters-dep-d4z8.vercel.app/api/sos";
-
+  static const String link1 = "https://shield-sisters-dep-d4z8.vercel.app/api"; // replace this
   Map<String, String> _headers() =>
       {
         'Content-Type': 'application/json',
       };
+  Future<Map<String, dynamic>> sendRegistrationOtp(String email, String fullname, String phone) async {
+    final url = Uri.parse('$link/users/send-registration-otp');
+    try {
+      final response = await http.post(
+        url,
+        headers: _headers(),
+        body: jsonEncode({
+          'email': email,
+          'fullname': fullname,
+          'phone': phone,
+        }),
+      );
 
+      final responseData = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return responseData;
+      } else {
+        return {
+          'message': responseData['error'] ?? 'Failed to send OTP',
+        };
+      }
+    } catch (e) {
+      return {
+        'message': 'An error occurred',
+        'error': e.toString(),
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> verifyRegistrationOtp(String email, String otp) async {
+    final url = Uri.parse('$link/users/verify-registration-otp');
+    print('Sending OTP: $otp, Type: ${otp.runtimeType}');
+    try {
+      final response = await http.post(
+        url,
+        headers: _headers(),
+        body: jsonEncode({
+          'email': email,
+          'otp': otp,
+        }),
+      );
+
+      final responseData = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return responseData;
+      } else {
+        return {
+          'message': responseData['error'] ?? 'Failed to verify OTP',
+        };
+      }
+    } catch (e) {
+      return {
+        'message': 'An error occurred',
+        'error': e.toString(),
+      };
+    }
+  }
   // Future<Map<String, dynamic>> sendSOS(String userId, String latitude,
   //     String longitude) async {
   //   final url = Uri.parse('$_baseUrl2');
@@ -57,7 +115,7 @@ class AuthService {
   //   }
   // }
 
-  Future<Map<String, dynamic>> sendSOS(String userId, String latitude, String longitude) async {
+  Future<Map<String, dynamic>> sendSOS(String userId, String latitude, String longitude,String SOSCode) async {
     final url = Uri.parse('$_baseUrl2');
 
     try {
@@ -106,18 +164,24 @@ class AuthService {
           'networkStatus': connectionType,
           'deviceModel': deviceModel,
           'timestamp': timestamp,
-          'ringerMode': ringerMode, // Optional, replace if you find platform plugin
+          'ringerMode': ringerMode,
+          'SOSCode': SOSCode// Optional, replace if you find platform plugin
         }),
       );
-
+print(SOSCode);
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
+
       } else {
         return {
           'message': 'Failed to send SOS',
           'details': jsonDecode(response.body),
         };
       }
+      // return{
+      //   'message': 'SOS processed!',
+      //   'details': 'Great work',
+      // };
     } catch (e) {
       print("Error sending sos ${e.toString()}");
       return {
@@ -170,6 +234,7 @@ class AuthService {
           'email': email,
           'password': password,
           'phone' : phoneNumber,
+
         }),
       );
 
@@ -317,8 +382,9 @@ class AuthService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return jsonDecode(response.body);
       } else {
+        // print("This is the response body : ${jsonDecode(response.body)}");
         return {
-          "message": jsonDecode(response.body)['message'] ?? 'Error occurred',
+          "message": jsonDecode(response.body) ?? 'Error occurred',
         };
       }
     } catch (e) {
@@ -334,7 +400,7 @@ class AuthService {
   //TODO: Edit this for Sending OTP feature add vercel server link here !!
   Future<Map<String, dynamic>> sendOtp(String email) async {
     final res = await http.post(
-      Uri.parse('https://your-vercel-app.vercel.app/api/users/forgot-password/sendotp'),
+      Uri.parse('https://shield-sisters-dep-d4z8.vercel.app/api/users/send-otp'),
       body: jsonEncode({'email': email}),
       headers: {'Content-Type': 'application/json'},
     );
@@ -343,7 +409,7 @@ class AuthService {
 
   Future<Map<String, dynamic>> verifyOtp(String email, String otp) async {
     final res = await http.post(
-      Uri.parse('https://your-vercel-app.vercel.app/api/users/verify-otp'),
+      Uri.parse('https://shield-sisters-dep-d4z8.vercel.app/api/users/verify-otp'),
       body: jsonEncode({'email': email, 'otp': otp}),
       headers: {'Content-Type': 'application/json'},
     );
@@ -353,16 +419,71 @@ class AuthService {
 
   Future<Map<String, dynamic>> resetPassword(String email, String otp, String newPassword) async {
     final response = await http.post(
-      Uri.parse('https://your-vercel-url/reset-password'),
-      body: {'email': email, 'otp': otp, 'newPassword': newPassword},
+        Uri.parse('https://shield-sisters-dep-d4z8.vercel.app/api/users/reset-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'email': email,
+          'otp': otp,
+          'newPassword': newPassword,
+        }),
     );
-
     if (response.statusCode == 200) {
       return json.decode(response.body);
     } else {
       return {'success': false, 'message': 'Failed to reset password'};
     }
   }
+
+ static Future<Map<String, dynamic>> updateUserProfile( Map<String, dynamic> data) async {
+    final url = Uri.parse('$link1/users/update');
+
+    final response = await http.put(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(data),
+    );
+
+    if (response.statusCode == 200) {
+      final resBody = jsonDecode(response.body);
+      return {
+        'success': true,
+        'message': resBody['message'],
+        'data': resBody['updatedUser'],
+      };
+    } else {
+      final error = jsonDecode(response.body);
+      return {
+        'success': false,
+        'message': error['error'] ?? 'Failed to update profile',
+      };
+    }
+  }
+  Future<Map<String, dynamic>> deleteUserProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('userId');
+
+    final response = await http.post(
+      Uri.parse('$link1/users/delete'),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'userId': userId,
+      }),
+    );
+
+    final result = jsonDecode(response.body);
+    print("DELETE ACCOUNT RESONSE.BODY: ${result}");
+
+    if (response.statusCode == 200) {
+      return {'success': true, 'message': result['message']};
+    } else {
+      return {'success': false, 'error': result['error'] ?? 'Unknown error'};
+    }
+  }
+
 
 
 }

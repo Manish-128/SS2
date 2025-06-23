@@ -29,6 +29,8 @@ class _LocationChoiceScreenState extends State<LocationChoiceScreen> {
         MaterialPageRoute(
           builder: (context) => ViewLocationScreen(
             trackingId: _trackingIdController.text.trim(),
+            isSOS: false,
+            SOSCode: "0000",
           ),
         ),
       );

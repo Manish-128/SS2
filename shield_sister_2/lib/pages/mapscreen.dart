@@ -24,7 +24,7 @@ class Landmark {
 }
 
 Future<List<Landmark>> fetchLandmarks(LatLng location, String type) async {
-  const apiKey = "AIzaSyBJ1o2Y3-l1lq3YQN3rSkiPAR71MWUPqpI"; // Replace with your API key
+  const apiKey = "Paste_Your_API_KEY"; // Replace with your API key
 
   final url = Uri.parse(
       'https://maps.googleapis.com/maps/api/place/nearbysearch/json?'

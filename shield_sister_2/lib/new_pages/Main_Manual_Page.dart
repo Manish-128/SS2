@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'Manual_Page_Schemas.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class MainManualPage extends StatefulWidget {
   const MainManualPage({super.key});
@@ -83,136 +84,99 @@ class _MainManualPageState extends State<MainManualPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.white,
-              Colors.grey.shade100,
-            ],
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: Text(
+          'Safety Manuals',
+          style: GoogleFonts.openSans(
+            color: Color(0xFFFF6F61),
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
           ),
         ),
-        child: SafeArea(
-          child: Stack(
-            children: [
-              // Decorative background elements
-              Positioned(
-                top: -50,
-                left: -50,
-                child: Container(
-                  width: 200,
-                  height: 200,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.black.withOpacity(0.05),
+
+        elevation: 0.5,
+      ),
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            // Custom header
+            SliverPadding(
+              padding: const EdgeInsets.all(16.0),
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  children: [
+                    // Text(
+                    //   "Safety Manuals",
+                    //   style: TextStyle(
+                    //     fontSize: 32,
+                    //     fontWeight: FontWeight.bold,
+                    //     color: Colors.black87,
+                    //     letterSpacing: 1.5,
+                    //   ),
+                    // ),
+                    const SizedBox(height: 24),
+                    Wrap(
+                      spacing: 16,
+                      runSpacing: 16,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        _topButton("How to Access", selected == 1, () => setState(() => selected = 1)),
+                        _topButton("Safety Blogs", selected == 2, () => setState(() => selected = 2)),
+                        _topButton("Quick Manuals", selected == 3, () => setState(() => selected = 3)),
+                        _topButton("Misc", selected == 4, () => setState(() => selected = 4)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Content based on selection
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              sliver: selected == 1
+                  ? SliverList(
+                delegate: SliverChildBuilderDelegate(
+                      (context, index) => aManual(context, accessManual[index]),
+                  childCount: accessManual.length,
+                ),
+              )
+                  : selected == 2
+                  ? SliverList(
+                delegate: SliverChildBuilderDelegate(
+                      (context, index) => sManual(context, safetyBlogs[index]),
+                  childCount: safetyBlogs.length,
+                ),
+              )
+                  : selected == 3
+                  ? SliverList(
+                delegate: SliverChildBuilderDelegate(
+                      (context, index) => dManual(context, defenceManuals[index]),
+                  childCount: defenceManuals.length,
+                ),
+              )
+                  : selected == 4
+                  ? SliverList(
+                delegate: SliverChildBuilderDelegate(
+                      (context, index) => aManual(context, accessManual[index]),
+                  childCount: accessManual.length,
+                ),
+              )
+                  : SliverToBoxAdapter(
+                child: Center(
+                  child: Text(
+                    "Please select a type of article...",
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey.shade700,
+                    ),
                   ),
                 ),
               ),
-              Positioned(
-                bottom: -80,
-                right: -80,
-                child: Container(
-                  width: 250,
-                  height: 250,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.black.withOpacity(0.05),
-                  ),
-                ),
-              ),
-
-              // Main content
-              CustomScrollView(
-                slivers: [
-                  // Custom header
-                  SliverPadding(
-                    padding: const EdgeInsets.all(16.0),
-                    sliver: SliverToBoxAdapter(
-                      child: Column(
-                        children: [
-                          Text(
-                            "Safety Manuals",
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                              letterSpacing: 1.5,
-                              shadows: [
-                                Shadow(
-                                  color: Colors.grey.withOpacity(0.5),
-                                  offset: const Offset(2, 2),
-                                  blurRadius: 6,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          Wrap(
-                            spacing: 16,
-                            runSpacing: 16,
-                            alignment: WrapAlignment.center,
-                            children: [
-                              _topButton("How to Access", selected == 1, () => setState(() => selected = 1)),
-                              _topButton("Safety Blogs", selected == 2, () => setState(() => selected = 2)),
-                              _topButton("Quick Manuals", selected == 3, () => setState(() => selected = 3)),
-                              _topButton("Misc", selected == 4, () => setState(() => selected = 4)),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // Content based on selection
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                    sliver: selected == 1
-                        ? SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                            (context, index) => aManual(context, accessManual[index]),
-                        childCount: accessManual.length,
-                      ),
-                    )
-                        : selected == 2
-                        ? SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                            (context, index) => sManual(context, safetyBlogs[index]),
-                        childCount: safetyBlogs.length,
-                      ),
-                    )
-                        : selected == 3
-                        ? SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                            (context, index) => dManual(context, defenceManuals[index]),
-                        childCount: defenceManuals.length,
-                      ),
-                    )
-                        : selected == 4
-                        ? SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                            (context, index) => aManual(context, accessManual[index]),
-                        childCount: accessManual.length,
-                      ),
-                    )
-                        : SliverToBoxAdapter(
-                      child: Center(
-                        child: Text(
-                          "Please select a type of article...",
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey.shade700,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 50)), // Bottom padding
-                ],
-              ),
-            ],
-          ),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 50)), // Bottom padding
+          ],
         ),
       ),
     );
@@ -226,11 +190,11 @@ class _MainManualPageState extends State<MainManualPage> {
         width: 150,
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.black : Colors.white,
+          color: isSelected ? const Color(0xFFAAF0D1) : Colors.white,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.3),
+              color: const Color(0xFF009688).withOpacity(0.3),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -240,7 +204,7 @@ class _MainManualPageState extends State<MainManualPage> {
           child: Text(
             name,
             style: TextStyle(
-              color: isSelected ? Colors.white : Colors.black,
+              color: isSelected ? Color(0xFF009688) : Colors.black87,
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),

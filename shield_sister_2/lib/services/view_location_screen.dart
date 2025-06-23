@@ -6,7 +6,9 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class ViewLocationScreen extends StatefulWidget {
   final String trackingId;
-  const ViewLocationScreen({required this.trackingId, Key? key}) : super(key: key);
+  bool isSOS;
+  final String SOSCode;
+  ViewLocationScreen({required this.trackingId, required this.isSOS, required this.SOSCode, Key? key}) : super(key: key);
 
   @override
   _ViewLocationScreenState createState() => _ViewLocationScreenState();
@@ -186,15 +188,27 @@ class _ViewLocationScreenState extends State<ViewLocationScreen> {
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Text(
-                          "Tracking: ${widget.trackingId}",
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              "Tracking: ${widget.trackingId}",
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if(widget.isSOS)
+                              Text("SOS code: ${widget.SOSCode}",
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              )
+                          ],
+                        )
                       ),
                     ],
                   ),
