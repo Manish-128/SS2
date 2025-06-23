@@ -1,0 +1,117 @@
+SHIELD SISTER - Women’s Safety App
+==================================
+
+--------------------------------------------------------------------------------
+SYSTEM REQUIREMENTS
+--------------------------------------------------------------------------------
+- OS: Windows, macOS, or Linux
+- RAM: 8 GB or higher recommended
+- Internet: Required to download dependencies
+- Tools: Git (for cloning), VS Code or Android Studio
+
+--------------------------------------------------------------------------------
+1. INSTALL DART & FLUTTER SDK
+--------------------------------------------------------------------------------
+Note: Flutter includes Dart.
+
+For Windows:
+-------------
+1. Download Flutter SDK: https://docs.flutter.dev/get-started/install/windows
+2. Extract to: C:\flutter
+3. Add Flutter to PATH:
+   - Open "Edit environment variables"
+   - Add: C:\flutter\bin to the system PATH
+4. Open Command Prompt and run:
+   flutter doctor
+
+For macOS/Linux:
+-----------------
+1. Open terminal and run:
+   git clone https://github.com/flutter/flutter.git -b stable
+2. Add Flutter to PATH:
+   export PATH="$PATH:`pwd`/flutter/bin"
+3. Verify:
+   flutter doctor
+
+--------------------------------------------------------------------------------
+2. INSTALL VS CODE (RECOMMENDED) OR ANDROID STUDIO
+--------------------------------------------------------------------------------
+
+VS Code:
+--------
+- Download: https://code.visualstudio.com/
+- Install extensions:
+  - Flutter
+  - Dart
+
+Android Studio:
+---------------
+- Download: https://developer.android.com/studio
+- Go to Preferences > Plugins and install:
+  - Flutter
+  - Dart
+
+--------------------------------------------------------------------------------
+3. SET UP ANDROID EMULATOR OR REAL DEVICE
+--------------------------------------------------------------------------------
+
+Using Emulator:
+---------------
+- Open Android Studio > AVD Manager
+- Create new virtual device (e.g., Pixel 4)
+- Select system image (API 30+)
+- Launch the emulator
+
+Using Real Device:
+------------------
+- Enable Developer Options and USB Debugging on the phone
+- Connect device via USB and allow permission
+
+--------------------------------------------------------------------------------
+4. DOWNLOAD AND SET UP THE PROJECT
+--------------------------------------------------------------------------------
+
+If provided as a ZIP:
+- Extract the Shield Sister project folder
+
+--------------------------------------------------------------------------------
+5. INSTALL REQUIRED PACKAGES
+--------------------------------------------------------------------------------
+
+In the project root folder, run:
+flutter pub get
+
+--------------------------------------------------------------------------------
+6. RUN THE APPLICATION
+--------------------------------------------------------------------------------
+
+1. Ensure emulator is running or real device is connected.
+2. In terminal:
+   flutter run
+
+OR
+
+3. In VS Code:
+   - Open the project folder
+   - Open lib/main.dart
+   - Press F5 or go to Run > Start Debugging
+
+--------------------------------------------------------------------------------
+TROUBLESHOOTING
+--------------------------------------------------------------------------------
+- To check Flutter setup:
+  flutter doctor
+
+- If you face build issues:
+  flutter clean
+  flutter pub get
+
+--------------------------------------------------------------------------------
+SUPPORT
+--------------------------------------------------------------------------------
+For any issues running the app, contact the developer or open an issue in the GitHub repository.
+
+emails: 
+manishwalurkar4@gmail.com
+farkaderohit2003@gmail.com
+gaznavisheikh01@gmail.com
